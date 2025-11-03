@@ -33,4 +33,4 @@ This experimental feature allows local control over HTTP for devices which expos
 | IS-ASX-WIFI-1           | :x:                      |
 
 ### WMP (Intesisbox)
-There are two forks for Intesisbox support. Intesisbox support was added to the pyintesishome library which this integration uses, however the original https://github.com/jnimmo/hass-intesisbox integration is likely to be better maintaned for the time being. 
+There are two forks for Intesisbox support. Intesisbox support was added to the pyintesishome2 library which this integration uses, however the original https://github.com/jnimmo/hass-intesisbox integration is likely to be better maintaned for the time being. 

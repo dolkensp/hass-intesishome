@@ -2,7 +2,7 @@
 """Config flow for IntesisHome."""
 import logging
 
-from pyintesishome import (
+from pyintesishome2 import (
     IHAuthenticationError,
     IHConnectionError,
     IntesisBase,
@@ -10,7 +10,7 @@ from pyintesishome import (
     IntesisHome,
     IntesisHomeLocal,
 )
-from pyintesishome.const import (
+from pyintesishome2.const import (
     DEVICE_AIRCONWITHME,
     DEVICE_ANYWAIR,
     DEVICE_INTESISBOX,

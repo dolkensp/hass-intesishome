@@ -6,7 +6,7 @@ import logging
 from random import randrange
 from typing import NamedTuple
 
-from pyintesishome import (
+from pyintesishome2 import (
     IHAuthenticationError,
     IHConnectionError,
     IntesisBase,
@@ -14,7 +14,7 @@ from pyintesishome import (
     IntesisHome,
     IntesisHomeLocal,
 )
-from pyintesishome.const import (
+from pyintesishome2.const import (
     DEVICE_AIRCONWITHME,
     DEVICE_ANYWAIR,
     DEVICE_INTESISBOX,
@@ -511,7 +511,7 @@ class IntesisAC(ClimateEntity):
 
     @property
     def should_poll(self):
-        """Poll for updates if pyIntesisHome doesn't have a socket open."""
+        """Poll for updates if pyIntesisHome2 doesn't have a socket open."""
         return True
 
     @property

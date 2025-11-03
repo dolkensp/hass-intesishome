@@ -6,7 +6,7 @@
   "documentation": "https://www.home-assistant.io/integrations/intesishome",
   "iot_class": "cloud_push",
   "issue_tracker": "https://github.com/jnimmo/hass-intesishome/issues",
-  "loggers": ["pyintesishome"],
-  "requirements": ["pyintesishome @ git+https://github.com/dolkensp/pyIntesisHome@1.9.0"],
-  "version": "1.4.1"
+  "loggers": ["pyintesishome2"],
+  "requirements": ["pyintesishome2==1.8.7"],
+  "version": "1.4.2"
 }
