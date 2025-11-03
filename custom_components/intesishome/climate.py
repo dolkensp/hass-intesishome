@@ -91,8 +91,8 @@ MAP_STATE_ICONS = {
     HVACMode.HEAT_COOL: "mdi:cached",
 }
 
-MAX_RETRIES = 10
-MAX_WAIT_TIME = 300
+MAX_RETRIES = 2
+MAX_WAIT_TIME = 30
 
 
 async def async_setup_entry(
@@ -460,7 +460,7 @@ class IntesisAC(ClimateEntity):
                 DEVICE_AIRCONWITHME,
             ]:
                 # Add a random delay for cloud connections
-                reconnect_seconds = randrange(30, 600)
+                reconnect_seconds = randrange(10, 60)
 
             _LOGGER.info(
                 "Connection to %s API was lost. Reconnecting in %i seconds",
