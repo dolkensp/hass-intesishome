@@ -24,7 +24,7 @@ from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import DOMAIN
+from . import DOMAIN, get_vane_preference
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,15 +48,6 @@ MAP_PRESET_MODE_TO_IH = {v: k for k, v in MAP_IH_TO_PRESET_MODE.items()}
 IH_SWING_STOP = "auto/stop"
 IH_SWING_SWING = "swing"
 
-MAP_SWING_TO_IH = {
-    SWING_OFF: IH_SWING_STOP,
-    SWING_VERTICAL: IH_SWING_SWING,
-}
-MAP_HORIZONTAL_SWING_TO_IH = {
-    SWING_OFF: IH_SWING_STOP,
-    SWING_HORIZONTAL: IH_SWING_SWING,
-}
-
 MAP_STATE_ICONS = {
     HVACMode.COOL: "mdi:snowflake",
     HVACMode.DRY: "mdi:water-off",
@@ -79,7 +70,7 @@ async def async_setup_entry(
     ih_devices = controller.get_devices() or {}
     async_add_entities(
         [
-            IntesisAC(ih_device_id, device, controller)
+            IntesisAC(config_entry.entry_id, ih_device_id, device, controller)
             for ih_device_id, device in ih_devices.items()
         ],
         update_before_add=True,
@@ -92,8 +83,9 @@ class IntesisAC(ClimateEntity):
 
     _enable_turn_on_off_backwards_compatibility = False
 
-    def __init__(self, ih_device_id, ih_device, controller) -> None:
+    def __init__(self, entry_id, ih_device_id, ih_device, controller) -> None:
         """Initialize the thermostat."""
+        self._entry_id: str = entry_id
         self._controller: IntesisBase = controller
         self._device_id: str = ih_device_id
         self._ih_device: dict[str, dict[str, object]] = ih_device
@@ -289,18 +281,45 @@ class IntesisAC(ClimateEntity):
         await self._controller.set_preset_mode(self._device_id, ih_preset_mode)
 
     async def async_set_swing_mode(self, swing_mode):
-        """Set the vertical vane."""
-        if swingmode := MAP_SWING_TO_IH.get(swing_mode):
-            await self._controller.set_vertical_vane(
-                self._device_id, swingmode
-            )
+        """Set the vertical vane.
+
+        SWING_VERTICAL -> 'swing' (device sweeps the vane).
+        SWING_OFF     -> the user's preferred manual position (from the
+                         select entity if exposed, otherwise the middle
+                         manual the device advertises). Falls back to
+                         'auto/stop' for devices with no manual positions.
+        """
+        if swing_mode == SWING_VERTICAL:
+            await self._controller.set_vertical_vane(self._device_id, IH_SWING_SWING)
+            return
+        if swing_mode == SWING_OFF:
+            target = get_vane_preference(
+                self.hass,
+                self._entry_id,
+                self._device_id,
+                "vertical",
+                self._controller,
+            ) or IH_SWING_STOP
+            await self._controller.set_vertical_vane(self._device_id, target)
 
     async def async_set_swing_horizontal_mode(self, swing_mode):
-        """Set the horizontal vane."""
-        if swingmode := MAP_HORIZONTAL_SWING_TO_IH.get(swing_mode):
-            await self._controller.set_horizontal_vane(
-                self._device_id, swingmode
-            )
+        """Set the horizontal vane.
+
+        Same semantics as async_set_swing_mode: ON sweeps, OFF lands on
+        the preferred (or middle) manual position.
+        """
+        if swing_mode == SWING_HORIZONTAL:
+            await self._controller.set_horizontal_vane(self._device_id, IH_SWING_SWING)
+            return
+        if swing_mode == SWING_OFF:
+            target = get_vane_preference(
+                self.hass,
+                self._entry_id,
+                self._device_id,
+                "horizontal",
+                self._controller,
+            ) or IH_SWING_STOP
+            await self._controller.set_horizontal_vane(self._device_id, target)
 
     async def async_update(self):
         """Copy values from controller dictionary to climate device."""
