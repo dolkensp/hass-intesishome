@@ -21,10 +21,11 @@ import voluptuous as vol
 
 from homeassistant import config_entries, exceptions
 from homeassistant.const import CONF_DEVICE, CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from . import DOMAIN
+from . import CONF_EXPOSE_VANES, DEFAULT_EXPOSE_VANES, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +38,14 @@ class IntesisConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         """Initialize."""
         self._data = {}
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> "IntesisOptionsFlow":
+        """Return the options flow handler for an existing entry."""
+        return IntesisOptionsFlow(config_entry)
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         """Handle the initial device type selection step."""
@@ -176,6 +185,29 @@ class IntesisConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_import(self, import_data) -> FlowResult:
         """Handle configuration by yaml file."""
         return await self.async_step_user(import_data)
+
+
+class IntesisOptionsFlow(config_entries.OptionsFlow):
+    """Options flow for runtime preferences (no auth changes here)."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize the options flow with the existing entry."""
+        self._config_entry = config_entry
+
+    async def async_step_init(self, user_input=None) -> FlowResult:
+        """Single-step toggle form."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        current = self._config_entry.options.get(
+            CONF_EXPOSE_VANES, DEFAULT_EXPOSE_VANES
+        )
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_EXPOSE_VANES, default=current): bool,
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)
 
 
 class CannotConnect(exceptions.HomeAssistantError):

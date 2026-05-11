@@ -45,6 +45,10 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 DOMAIN = "intesishome"
 PLATFORMS = ["climate", "select"]
 
+# Options keys (config_entry.options[...])
+CONF_EXPOSE_VANES = "expose_vanes"
+DEFAULT_EXPOSE_VANES = True
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -104,8 +108,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "controller": controller,
     }
 
+    # Reload the entry when options change so platforms can pick up new settings.
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload the config entry so the new options take effect."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
