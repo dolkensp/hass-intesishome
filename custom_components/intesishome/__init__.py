@@ -127,7 +127,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     controller: IntesisBase
     if device_type == DEVICE_INTESISBOX:
         controller = IntesisBox(ih_host, loop=hass.loop)
-        await controller.connect()
     elif device_type == DEVICE_INTESISHOME_LOCAL:
         controller = IntesisHomeLocal(
             ih_host, ih_user, ih_pass, loop=hass.loop, websession=websession
@@ -141,8 +140,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             device_type=device_type,
         )
 
+    # Authenticate and bring the connection up in one shot. Doing it here
+    # (rather than in the entity's async_added_to_hass) avoids a
+    # duplicate HTTP poll_status, gives the platforms a fully-live
+    # controller, and removes the race that produced the "Setup of
+    # climate platform taking over 10 seconds" warning during HA boot.
     try:
-        await controller.poll_status()
+        await controller.connect()
     except IHAuthenticationError as exc:
         _LOGGER.error("Invalid IntesisHome credentials for %s", device_type)
         raise ConfigEntryAuthFailed from exc

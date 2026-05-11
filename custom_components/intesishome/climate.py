@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from pyintesishome import IHConnectionError, IntesisBase
-from pyintesishome.const import DEVICE_INTESISBOX
+from pyintesishome import IntesisBase
 
 from homeassistant import config_entries, core
 from homeassistant.components.climate import ClimateEntity
@@ -21,7 +20,7 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
-from homeassistant.exceptions import HomeAssistantError, PlatformNotReady
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DOMAIN, get_vane_preference
@@ -153,16 +152,14 @@ class IntesisAC(ClimateEntity):
         self._attr_hvac_modes.append(HVACMode.OFF)
 
     async def async_added_to_hass(self):
-        """Subscribe to event updates."""
+        """Subscribe to event updates.
+
+        The controller is already connected by the time the entity is
+        added (see __init__.async_setup_entry) so this only needs to
+        register the state-update callback.
+        """
         _LOGGER.debug("Added climate device with state: %s", repr(self._ih_device))
         self._controller.add_update_callback(self.async_update_callback)
-
-        if self._device_type is not DEVICE_INTESISBOX:
-            try:
-                await self._controller.connect()
-            except IHConnectionError as ex:
-                _LOGGER.error("Exception connecting to IntesisHome: %s", ex)
-                raise PlatformNotReady from ex
 
     @property
     def name(self):
