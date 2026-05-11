@@ -60,11 +60,17 @@ def _manual_options(controller: IntesisBase, device_id: str, axis: str) -> list[
 
 
 def _middle_manual(controller: IntesisBase, device_id: str, axis: str) -> str | None:
-    """Pick the median manual position for the axis, or None if there are none."""
+    """Pick the median manual position (rounded down) for the axis.
+
+    For an even count, returns the lower of the two middle items:
+      [m1, m2, m3, m4]      -> m2
+      [m1, m2, m3, m4, m5]  -> m3
+      [m1..m6]              -> m3
+    """
     manuals = _manual_options(controller, device_id, axis)
     if not manuals:
         return None
-    return manuals[len(manuals) // 2]
+    return manuals[(len(manuals) - 1) // 2]
 
 
 def get_vane_preference(
