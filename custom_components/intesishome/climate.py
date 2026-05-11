@@ -3,15 +3,9 @@
 from __future__ import annotations
 
 import logging
-from random import randrange
 
 from pyintesishome import IHConnectionError, IntesisBase
-from pyintesishome.const import (
-    DEVICE_AIRCONWITHME,
-    DEVICE_ANYWAIR,
-    DEVICE_INTESISBOX,
-    DEVICE_INTESISHOME,
-)
+from pyintesishome.const import DEVICE_INTESISBOX
 
 from homeassistant import config_entries, core
 from homeassistant.components.climate import ClimateEntity
@@ -29,7 +23,6 @@ from homeassistant.components.climate import (
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.event import async_call_later
 
 from . import DOMAIN
 
@@ -71,10 +64,6 @@ MAP_STATE_ICONS = {
     HVACMode.HEAT: "mdi:white-balance-sunny",
     HVACMode.HEAT_COOL: "mdi:cached",
 }
-
-MAX_RETRIES = 10
-MAX_WAIT_TIME = 300
-
 
 async def async_setup_entry(
     hass: core.HomeAssistant,
@@ -375,49 +364,11 @@ class IntesisAC(ClimateEntity):
 
     async def async_update_callback(self, device_id=None):
         """Let HA know there has been an update from the controller."""
-        # Track changes in connection state
+        # Track connection-state transitions for logging.
         if self._controller and not self._controller.is_connected and self._connected:
-            # Connection has dropped
             self._connected = False
-            reconnect_seconds = 30
-            if self._device_type in [
-                DEVICE_INTESISHOME,
-                DEVICE_ANYWAIR,
-                DEVICE_AIRCONWITHME,
-            ]:
-                # Add a random delay for cloud connections
-                reconnect_seconds = randrange(30, 600)
-
-            _LOGGER.info(
-                "Connection to %s API was lost. Reconnecting in %i seconds",
-                self._device_type,
-                reconnect_seconds,
-            )
-
-            async def try_connect(retries):
-                try:
-                    await self._controller.connect()
-                    _LOGGER.info("Reconnected to %s API", self._device_type)
-                except IHConnectionError:
-                    if retries < MAX_RETRIES:
-                        wait_time = min(2**retries, MAX_WAIT_TIME)
-                        _LOGGER.info(
-                            "Failed to reconnect to %s API. Retrying in %i seconds",
-                            self._device_type,
-                            wait_time,
-                        )
-                        async_call_later(self.hass, wait_time, try_connect(retries + 1))
-                    else:
-                        _LOGGER.error(
-                            "Failed to reconnect to %s API after %i retries. Giving up",
-                            self._device_type,
-                            MAX_RETRIES,
-                        )
-
-                async_call_later(self.hass, reconnect_seconds, try_connect(0))
-
-        if self._controller.is_connected and not self._connected:
-            # Connection has been restored
+            _LOGGER.info("Connection to %s API was lost", self._device_type)
+        elif self._controller and self._controller.is_connected and not self._connected:
             self._connected = True
             _LOGGER.debug("Connection to %s API was restored", self._device_type)
 
