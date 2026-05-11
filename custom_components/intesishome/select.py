@@ -43,7 +43,6 @@ class IntesisVaneSelect(SelectEntity):
     """
 
     _attr_should_poll = False
-    _attr_has_entity_name = True
 
     def __init__(
         self,
@@ -60,7 +59,7 @@ class IntesisVaneSelect(SelectEntity):
         self._controller = controller
         self._axis = axis
         self._attr_unique_id = f"{device_id}_{axis}_vane"
-        self._attr_translation_key = f"{axis}_vane"
+        self._attr_name = f"{self._device_name} {axis.title()} Vane"
         # Snapshot the options at construction time. The device's supported
         # position bitmap doesn't change during a session.
         if axis == "vertical":
