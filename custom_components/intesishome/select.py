@@ -24,6 +24,7 @@ from pyintesishome import IntesisBase
 
 from homeassistant import config_entries, core
 from homeassistant.components.select import SelectEntity
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
@@ -164,18 +165,19 @@ class IntesisVaneSelect(SelectEntity, RestoreEntity):
     async def async_select_option(self, option: str) -> None:
         """Record the new preference and move the vane there."""
         if option not in self._attr_options:
-            _LOGGER.warning(
-                "%s vane: %r is not a supported option (%s)",
-                self._axis,
-                option,
-                self._attr_options,
+            raise HomeAssistantError(
+                f"{option!r} is not a supported {self._axis} vane position; "
+                f"valid options are {self._attr_options}"
             )
-            return
         set_vane_preference(
             self.hass, self._entry_id, self._device_id, self._axis, option
         )
         if self._axis == "vertical":
-            await self._controller.set_vertical_vane(self._device_id, option)
+            ok = await self._controller.set_vertical_vane(self._device_id, option)
         else:
-            await self._controller.set_horizontal_vane(self._device_id, option)
+            ok = await self._controller.set_horizontal_vane(self._device_id, option)
+        if not ok:
+            raise HomeAssistantError(
+                f"IntesisHome did not acknowledge {self._axis} vane {option!r}"
+            )
         self.async_schedule_update_ha_state(True)
