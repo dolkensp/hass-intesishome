@@ -27,6 +27,19 @@
       "cannot_connect": "An error occurred connecting to the IntesisHome API."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "IntesisHome options",
+        "data": {
+          "expose_vanes": "Expose vane position selectors"
+        },
+        "data_description": {
+          "expose_vanes": "When enabled, separate select entities are created for each vane axis (vertical and horizontal) the device supports, letting you pick a specific position. Disable to hide them and rely on the climate entity's coarse on/off swing toggle instead."
+        }
+      }
+    }
+  },
   "entity": {
     "select": {
       "vertical_vane": {
