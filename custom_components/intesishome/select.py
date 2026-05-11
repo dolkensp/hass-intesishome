@@ -10,7 +10,7 @@ from homeassistant import config_entries, core
 from homeassistant.components.select import SelectEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import DOMAIN
+from . import CONF_EXPOSE_VANES, DEFAULT_EXPOSE_VANES, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,6 +21,11 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Create vane select entities for each device that supports them."""
+    if not config_entry.options.get(CONF_EXPOSE_VANES, DEFAULT_EXPOSE_VANES):
+        _LOGGER.debug(
+            "Vane select entities disabled by options; skipping select platform setup"
+        )
+        return
     controller: IntesisBase = hass.data[DOMAIN][config_entry.entry_id]["controller"]
     entities: list[SelectEntity] = []
     for device_id, device in (controller.get_devices() or {}).items():
