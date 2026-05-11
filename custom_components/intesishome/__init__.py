@@ -49,6 +49,56 @@ PLATFORMS = ["climate", "select"]
 CONF_EXPOSE_VANES = "expose_vanes"
 DEFAULT_EXPOSE_VANES = True
 
+
+def _manual_options(controller: IntesisBase, device_id: str, axis: str) -> list[str]:
+    """Return the list of manualN positions the device supports for an axis."""
+    if axis == "vertical":
+        options = controller.get_vertical_swing_list(device_id) or []
+    else:
+        options = controller.get_horizontal_swing_list(device_id) or []
+    return [o for o in options if o.startswith("manual")]
+
+
+def _middle_manual(controller: IntesisBase, device_id: str, axis: str) -> str | None:
+    """Pick the median manual position for the axis, or None if there are none."""
+    manuals = _manual_options(controller, device_id, axis)
+    if not manuals:
+        return None
+    return manuals[len(manuals) // 2]
+
+
+def get_vane_preference(
+    hass: HomeAssistant,
+    entry_id: str,
+    device_id: str,
+    axis: str,
+    controller: IntesisBase,
+) -> str | None:
+    """Return the user-preferred manual position for this axis.
+
+    Falls back to the middle-most manual the device advertises. Returns
+    None only if the device exposes no manual positions at all (in which
+    case callers should fall back to a coarse value like 'auto/stop').
+    """
+    prefs = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("vane_preference", {})
+    pref = prefs.get((str(device_id), axis))
+    if pref:
+        return pref
+    return _middle_manual(controller, device_id, axis)
+
+
+def set_vane_preference(
+    hass: HomeAssistant,
+    entry_id: str,
+    device_id: str,
+    axis: str,
+    value: str,
+) -> None:
+    """Store the user's preferred manual position for this axis."""
+    entry_data = hass.data.setdefault(DOMAIN, {}).setdefault(entry_id, {})
+    prefs = entry_data.setdefault("vane_preference", {})
+    prefs[(str(device_id), axis)] = value
+
 _LOGGER = logging.getLogger(__name__)
 
 
