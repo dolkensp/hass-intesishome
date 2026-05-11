@@ -4,22 +4,13 @@ from __future__ import annotations
 
 import logging
 from random import randrange
-from typing import NamedTuple
 
-from pyintesishome import (
-    IHAuthenticationError,
-    IHConnectionError,
-    IntesisBase,
-    IntesisBox,
-    IntesisHome,
-    IntesisHomeLocal,
-)
+from pyintesishome import IHConnectionError, IntesisBase
 from pyintesishome.const import (
     DEVICE_AIRCONWITHME,
     DEVICE_ANYWAIR,
     DEVICE_INTESISBOX,
     DEVICE_INTESISHOME,
-    DEVICE_INTESISHOME_LOCAL,
 )
 
 from homeassistant import config_entries, core
@@ -35,20 +26,10 @@ from homeassistant.components.climate import (
     ClimateEntityFeature,
     HVACMode,
 )
-from homeassistant.const import (
-    ATTR_TEMPERATURE,
-    CONF_DEVICE,
-    CONF_HOST,
-    CONF_PASSWORD,
-    CONF_USERNAME,
-    UnitOfTemperature,
-)
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.exceptions import PlatformNotReady
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-
 
 from . import DOMAIN
 
@@ -100,75 +81,20 @@ async def async_setup_entry(
     config_entry: config_entries.ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Create climate entities from config flow."""
-    config = config_entry.data
-    if "controller" in hass.data[DOMAIN]:
-        controller = hass.data[DOMAIN]["controller"].pop(config_entry.unique_id)
-        ih_devices = controller.get_devices()
-        if ih_devices:
-            async_add_entities(
-                [
-                    IntesisAC(ih_device_id, device, controller)
-                    for ih_device_id, device in ih_devices.items()
-                ],
-                update_before_add=True,
-            )
-    else:
-        await async_setup_platform(hass, config, async_add_entities)
+    """Create climate entities from config flow.
 
-
-async def async_setup_platform(
-    hass: core.HomeAssistant,
-    config: ConfigType,
-    async_add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None
-) -> None:
-    """Create the IntesisHome climate devices."""
-    ih_user = config.get(CONF_USERNAME)
-    ih_host = config.get(CONF_HOST)
-    ih_pass = config.get(CONF_PASSWORD)
-    device_type = config.get(CONF_DEVICE)
-    websession = async_get_clientsession(hass)
-
-    if device_type == DEVICE_INTESISBOX:
-        controller = IntesisBox(config[CONF_HOST], loop=hass.loop)
-        await controller.connect()
-    elif device_type == DEVICE_INTESISHOME_LOCAL:
-        controller = IntesisHomeLocal(
-            ih_host, ih_user, ih_pass, loop=hass.loop, websession=websession
-        )
-    else:
-        controller = IntesisHome(
-            ih_user,
-            ih_pass,
-            hass.loop,
-            websession=async_get_clientsession(hass),
-            device_type=device_type,
-        )
-    try:
-        await controller.poll_status()
-    except IHAuthenticationError:
-        _LOGGER.error("Invalid username or password")
-        return
-    except IHConnectionError as ex:
-        _LOGGER.error("Error connecting to the %s server", device_type)
-        raise PlatformNotReady from ex
-
-    if ih_devices := controller.get_devices():
-        async_add_entities(
-            [
-                IntesisAC(ih_device_id, device, controller)
-                for ih_device_id, device in ih_devices.items()
-            ],
-            update_before_add=False,
-        )
-    else:
-        _LOGGER.error(
-            "Error getting device list from %s API: %s",
-            device_type,
-            controller.error_message,
-        )
-        await controller.stop()
+    The controller is constructed in __init__.async_setup_entry and stored
+    on hass.data so every platform shares one TCP session.
+    """
+    controller: IntesisBase = hass.data[DOMAIN][config_entry.entry_id]["controller"]
+    ih_devices = controller.get_devices() or {}
+    async_add_entities(
+        [
+            IntesisAC(ih_device_id, device, controller)
+            for ih_device_id, device in ih_devices.items()
+        ],
+        update_before_add=True,
+    )
 
 
 # pylint: disable=too-many-instance-attributes, too-many-arguments, too-many-public-methods
