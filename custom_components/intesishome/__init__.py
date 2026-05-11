@@ -43,7 +43,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 DOMAIN = "intesishome"
-PLATFORMS = ["climate"]
+PLATFORMS = ["climate", "select"]
 
 _LOGGER = logging.getLogger(__name__)
 

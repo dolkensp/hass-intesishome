@@ -26,5 +26,15 @@
       "invalid_auth": "Invalid username or password.",
       "cannot_connect": "An error occurred connecting to the IntesisHome API."
     }
+  },
+  "entity": {
+    "select": {
+      "vertical_vane": {
+        "name": "Vertical vane"
+      },
+      "horizontal_vane": {
+        "name": "Horizontal vane"
+      }
+    }
   }
 }
